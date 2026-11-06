@@ -94,3 +94,126 @@ class GURU(SEKOLAH):
         print(f"{'Wali Kelas':<18}: {self.Kelas}")
 
 
+class KELAS:
+    def __init__(self, Kelas: str):
+        if not Kelas.strip():
+            raise ValueError("Nama ruang kelas tidak boleh kosong!")
+        self.Kelas = Kelas.strip().upper()
+        self.Wali = None
+        self.Daftar_Siswa = []
+        self.Jadwal = []
+
+    def ASSIGN(self, Objek_Guru: GURU):
+        self.Wali = Objek_Guru
+        Objek_Guru.Kelas = self.Kelas
+
+    def TAMBAH_SISWA(self, Objek_Siswa: SISWA):
+        for s in self.Daftar_Siswa:
+            if s.Nomor_Induk == Objek_Siswa.Nomor_Induk:
+                raise ValueError(
+                    f"Siswa dengan NIS {Objek_Siswa.Nomor_Induk} sudah terdaftar di kelas ini!"
+                )
+        Objek_Siswa.Kelas = self.Kelas
+        self.Daftar_Siswa.append(Objek_Siswa)
+        self.Daftar_Siswa = sorted(self.Daftar_Siswa, key=lambda item: item.Nomor_Induk)
+
+    def TAMBAH_JADWAL(self, Hari: str, Jam: str, MP: str, Nama_Guru: str):
+        if not Hari.strip() or not Jam.strip() or not MP.strip():
+            raise ValueError("Hari, Jam, dan Mata Pelajaran wajib diisi lengkap!")
+        Entri = {
+            "Hari": Hari.strip().capitalize(),
+            "Jam": Jam.strip(),
+            "MP": MP.strip(),
+            "Guru": Nama_Guru.strip(),
+        }
+        self.Jadwal.append(Entri)
+
+    def INFO_KELAS(self):
+        Nama_Wali = self.Wali.Nama if self.Wali else "Belum Ditentukan"
+        print("\n" + "=" * 56)
+        print(f"DATA ROMBEL KELAS : {self.Kelas}")
+        print(f"Wali Kelas        : {Nama_Wali}")
+        print(f"Jumlah Siswa      : {len(self.Daftar_Siswa)} Siswa (Terurut berdasarkan NIS)")
+        print("-" * 56)
+        if not self.Daftar_Siswa:
+            print("Belum ada siswa terdaftar di kelas ini.")
+        else:
+            for idx in range(len(self.Daftar_Siswa)):
+                s = self.Daftar_Siswa[idx]
+                print(f"{idx + 1}. [{s.Nomor_Induk}] {s.Nama:<22} | Wali: {s.Wali}")
+        print("=" * 56)
+
+    def TAMPIL_JADWAL(self):
+        print("\n" + "=" * 56)
+        print(f"JADWAL PELAJARAN KELAS {self.Kelas}")
+        print("=" * 56)
+        if not self.Jadwal:
+            print("Belum ada jadwal pelajaran pada kelas ini.")
+        else:
+            for idx in range(len(self.Jadwal)):
+                j = self.Jadwal[idx]
+                print(f"{idx + 1}. {j['Hari']:<8} | {j['Jam']:<13} | {j['MP']:<16} | {j['Guru']}")
+        print("=" * 56)
+
+
+class ABSENSI:
+    STATUS_VALID = ("HADIR", "IZIN", "SAKIT", "ALPHA")
+
+    def __init__(self):
+        self.Riwayat = {}
+        self.Total_Log = 0
+        self._Coroutine = self._Hitung_Log()
+        next(self._Coroutine)
+
+    def _Hitung_Log(self):
+        Akumulasi = 0
+        while True:
+            Tambahan = yield Akumulasi
+            Akumulasi += Tambahan
+
+    def CATAT(self, NIS: str, Nama_Siswa: str, Tanggal: str, Status: str):
+        Status_Kapital = Status.strip().upper()
+        if Status_Kapital not in self.STATUS_VALID:
+            raise ValueError("Status presensi hanya boleh: HADIR, IZIN, SAKIT, atau ALPHA!")
+        if not Tanggal.strip():
+            raise ValueError("Tanggal presensi tidak boleh kosong!")
+        if NIS not in self.Riwayat:
+            self.Riwayat[NIS] = {"Nama": Nama_Siswa, "Log": []}
+        self.Riwayat[NIS]["Log"].append({"Tanggal": Tanggal.strip(), "Status": Status_Kapital})
+        self.Total_Log = self._Coroutine.send(1)
+
+    def PERSENTASE(self, NIS: str) -> float:
+        if NIS not in self.Riwayat:
+            return 0.0
+        Daftar_Log = self.Riwayat[NIS]["Log"]
+        if not Daftar_Log:
+            return 0.0
+        Daftar_Hadir = [item for item in Daftar_Log if item["Status"] == "HADIR"]
+        return (len(Daftar_Hadir) / len(Daftar_Log)) * 100.0
+
+    def CETAK_REKAP(self, NIS: str):
+        if NIS not in self.Riwayat:
+            print(f"\n[INFO] Belum ada data presensi untuk NIS {NIS}.")
+            return
+        Data_Siswa = self.Riwayat[NIS]
+        print("\n" + "=" * 56)
+        print(f"REKAP KEHADIRAN SISWA : {Data_Siswa['Nama']} (NIS: {NIS})")
+        print("=" * 56)
+        Items = iter(Data_Siswa["Log"])
+        Urutan = 1
+        while True:
+            try:
+                Log_Item = next(Items)
+                print(
+                    f"Pertemuan ke-{Urutan:<2} | Tanggal: {Log_Item['Tanggal']:<12} | Status: {Log_Item['Status']}"
+                )
+                Urutan += 1
+            except StopIteration:
+                break
+        Persen = self.PERSENTASE(NIS)
+        print("-" * 56)
+        print(f"Total Pertemuan      : {len(Data_Siswa['Log'])} Hari")
+        print(f"Persentase Kehadiran : {Persen:.2f}%")
+        print("=" * 56)
+
+
