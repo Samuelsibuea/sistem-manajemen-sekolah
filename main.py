@@ -217,3 +217,61 @@ class ABSENSI:
         print("=" * 56)
 
 
+class InvalidGradeException(Exception):
+    pass
+
+
+class NILAI:
+    def __init__(self):
+        self.Data_Nilai = {}
+
+    @staticmethod
+    def Validasi_Angka(Nilai_Input: float, Komponen: str):
+        if Nilai_Input < 0 or Nilai_Input > 100:
+            raise InvalidGradeException(
+                f"Nilai {Komponen} ({Nilai_Input}) tidak valid! Nilai wajib berada di rentang 0 sampai 100."
+            )
+
+    def INPUT_NILAI(
+        self, NIS: str, Nama_Siswa: str, MP: str, Ulangan: float, UTS: float, UAS: float
+    ):
+        if not MP.strip():
+            raise ValueError("Nama mata pelajaran tidak boleh kosong!")
+        self.Validasi_Angka(Ulangan, "Ulangan")
+        self.Validasi_Angka(UTS, "UTS")
+        self.Validasi_Angka(UAS, "UAS")
+        Nilai_Akhir = self.HITUNG_AKHIR(Ulangan, UTS, UAS)
+        if NIS not in self.Data_Nilai:
+            self.Data_Nilai[NIS] = {"Nama": Nama_Siswa, "MP": {}}
+        self.Data_Nilai[NIS]["MP"][MP.strip()] = {
+            "Ulangan": Ulangan,
+            "UTS": UTS,
+            "UAS": UAS,
+            "Akhir": Nilai_Akhir,
+        }
+
+    @staticmethod
+    def HITUNG_AKHIR(Ulangan: float, UTS: float, UAS: float) -> float:
+        return (0.40 * Ulangan) + (0.30 * UTS) + (0.30 * UAS)
+
+    def CETAK_RAPOR(self, NIS: str):
+        if NIS not in self.Data_Nilai:
+            print(f"\n[INFO] Belum ada data nilai untuk NIS {NIS}.")
+            return
+        Info = self.Data_Nilai[NIS]
+        print("\n" + "=" * 64)
+        print(f"TRANSKRIP & RAPOR SISWA : {Info['Nama']} (NIS: {NIS})")
+        print("Bobot Penilaian         : 40% Ulangan | 30% UTS | 30% UAS")
+        print("=" * 64)
+        print(
+            f"{'Mata Pelajaran':<20} | {'Ulangan':<8} | {'UTS':<8} | {'UAS':<8} | {'Nilai Akhir':<11}"
+        )
+        print("-" * 64)
+        for Nama_MP, n in Info["MP"].items():
+            print(
+                f"{Nama_MP:<20} | {n['Ulangan']:<8.1f} | {n['UTS']:<8.1f} | "
+                f"{n['UAS']:<8.1f} | {n['Akhir']:<11.2f}"
+            )
+        print("=" * 64)
+
+
